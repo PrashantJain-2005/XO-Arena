@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ref, set, get, onValue, runTransaction } from "firebase/database";
+import { ref, set, get, onValue, runTransaction, OnDisconnect, onDisconnect } from "firebase/database";
 import { database } from "./firebase.js";
 
 const winCombos = [
@@ -12,17 +12,11 @@ const gameRef = ref(database, "game/board")
 const turnRef = ref(database, "game/turn")
 const winnerRef = ref(database, "game/winner")
 const boardActiveRef = ref(database, "game/boardActive")
-const playerRef = ref(database, "game/players")
 const xRef = ref(database, "game/players/x")
 const oRef = ref(database, "game/players/o")
 
-// set(playerRef, { x: false, o: false })
-
-
 
 function App() {
-
-
 
   const [boardActive, setBoardActive] = useState(true)
   const [turn, setTurn] = useState("x")
@@ -46,9 +40,10 @@ function App() {
 
       if (xResult.committed) {
 
-        console.log(xResult.committed)
         setMySymbol("x")
         localStorage.setItem("mySymbol", "x")
+        onDisconnect(xRef).set(false)
+
 
       } else {
 
@@ -62,23 +57,20 @@ function App() {
 
           setMySymbol("o")
           localStorage.setItem("mySymbol", "o")
+          onDisconnect(oRef).set(false)
+
 
         } else {
 
-          if (localStorage.getItem("mySymbol")) {
-            setMySymbol(localStorage.getItem("mySymbol"))
+          const symbol = localStorage.getItem("mySymbol")
+          if (symbol) {
+            setMySymbol(symbol)
           } else {
             console.log("game fulll")
           }
-
         }
-
-
       }
-
     }
-
-
 
     abc()
 
