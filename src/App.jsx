@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ref, set, get, onValue, runTransaction, OnDisconnect, onDisconnect } from "firebase/database";
+import { ref, set, get, onValue, runTransaction, onDisconnect, update } from "firebase/database";
 import { database } from "./firebase.js";
 
 const winCombos = [
@@ -14,11 +14,13 @@ const winnerRef = ref(database, "game/winner")
 const boardActiveRef = ref(database, "game/boardActive")
 const xRef = ref(database, "game/players/x")
 const oRef = ref(database, "game/players/o")
+const restartRef = ref(database, "game/restart")
 
 
 function App() {
 
   const [boardActive, setBoardActive] = useState(true)
+  const [restart, setRestart] = useState({ x: false, o: false })
   const [turn, setTurn] = useState("x")
   const [winner, setWinner] = useState("")
   const [mySymbol, setMySymbol] = useState("")
@@ -71,7 +73,6 @@ function App() {
         }
       }
     }
-
     abc()
 
   }, [])
@@ -107,8 +108,13 @@ function App() {
     onValue(boardActiveRef, (snapshot) =>
       setBoardActive(snapshot.val())
     )
-  }, [])
 
+    onValue(restartRef, (snapshot) => {
+      setRestart(snapshot.val())
+      if (snapshot.val().x === true && snapshot.val().o === true)
+        restartGame()
+    })
+  }, [])
 
   function handleCell(index) {
 
@@ -150,26 +156,48 @@ function App() {
     return winningCombo
   }
 
-  function handleRestart() {
+  async function handleRestart() {
+
+    await update(restartRef, {
+      ["/" + mySymbol]: true
+    })
+
+  }
+
+  function restartGame() {
     setBoardActive(true)
     setBoardData(prev => prev.map(item => item = ""))
     setTurn("x")
     setWinner("")
+    set(restartRef, { x: false, o: false })
   }
 
 
 
   return (
     <div className=" w-dvw h-dvh overflow-hidden bg-blue-200 flex justify-center items-center ">
-      <div>
-        <p>
-          you are {mySymbol}
-        </p>
+      <div className="border p-6 border-gray-500/20 rounded-lg bg-blue-300/20">
+        <div className="flex justify-between items-center ">
+          <p className="font-semibold text-blue-900 capitalize ">
+            you are {mySymbol}
+          </p>
+          <div className="italic">
+
+            {
+              restart.x === true && mySymbol === "o" && <p> x wants to restart</p>
+            }
+            {
+              restart.o === true && mySymbol === "x" &&  <p> o wants to restart</p>
+            }
+          </div>
+          
+        </div>
         <div className="flex items-center justify-between mx-1 ">
 
           <p className="text-xl font-medium text-blue-900 capitalize ">
             {turn}'s turn
           </p>
+
           <button
             className="bg-blue-400 py-1 px-2 mb-2 text-lg rounded-lg text-blue-50 active:bg-blue-800 hover:bg-blue-500"
             onClick={handleRestart}
